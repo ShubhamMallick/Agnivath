@@ -1,11 +1,21 @@
 from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
-from rag import RAGSystem
+import sys
 import os
+from pathlib import Path
+
+# Add parent directory to path for imports
+sys.path.append(str(Path(__file__).parent.parent))
+
+from core.rag import RAGSystem
 import uvicorn
 
 app = FastAPI(title="AI RAG Assistant")
+
+# Mount static files
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Initialize RAG system when the application starts
 try:
@@ -23,13 +33,12 @@ class QueryRequest(BaseModel):
 
 @app.get("/", response_class=HTMLResponse)
 def home():
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    html_path = os.path.join(script_dir, "index.html")
+    html_path = Path(__file__).parent.parent / "static" / "index.html"
 
-    if not os.path.exists(html_path):
+    if not html_path.exists():
         return """
         <h1>index.html not found</h1>
-        <p>Make sure index.html is in the same folder as main.py.</p>
+        <p>Make sure static/index.html exists.</p>
         """
 
     try:
@@ -54,16 +63,21 @@ async def upload_document(file: UploadFile = File(...)):
     if not rag:
         rag = RAGSystem()
     
-    file_path = f"../documents/{file.filename}"
-    os.makedirs("../documents", exist_ok=True)
+    # Get project root
+    project_root = Path(__file__).parent.parent.parent
+    documents_dir = project_root / "documents"
+    chroma_dir = project_root / "chroma_db"
+    
+    file_path = documents_dir / file.filename
+    documents_dir.mkdir(exist_ok=True)
     
     with open(file_path, "wb") as buffer:
         content = await file.read()
         buffer.write(content)
     
-    documents = rag.load_document(file_path)
+    documents = rag.load_document(str(file_path))
     chunks = rag.split_documents(documents)
-    rag.create_vector_store(chunks)
+    rag.create_vector_store(chunks, str(chroma_dir))
     rag.create_qa_chain()
     
     return {"message": "Document uploaded and processed successfully"}

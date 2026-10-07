@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAG Chat Assistant</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="header">
+        <h1>✨ RAG Chat Assistant</h1>
+        <p>Upload documents and unlock knowledge with AI</p>
+    </div>
+    
+    <div class="main-container">
+        <div class="upload-section">
+            <h3>📄 Upload Document</h3>
+            <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+                <input type="file" id="fileInput" accept=".pdf,.docx" onchange="updateFileName()">
+                <div id="uploadLabel">Click to select PDF or DOCX file</div>
+            </div>
+            <div class="upload-controls">
+                <button onclick="uploadDocument()">Upload & Process</button>
+                <span id="uploadStatus"></span>
+            </div>
+        </div>
+        
+        <div class="chat-container" id="chatContainer">
+            <div class="message assistant">
+                <div class="message-content">
+                    👋 Hello! I'm your AI-powered knowledge assistant. Upload a document and I'll help you explore and understand it through natural conversation.
+                </div>
+            </div>
+        </div>
+        
+        <div class="input-section">
+            <div class="input-controls">
+                <select id="providerSelect">
+                    <option value="openrouter">OpenRouter</option>
+                    <option value="groq">Groq</option>
+                </select>
+                <input type="text" id="queryInput" placeholder="Type your message..." autocomplete="off">
+                <button onclick="sendMessage()" id="sendBtn">Send ✨</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function updateFileName() {
+            const fileInput = document.getElementById('fileInput');
+            const label = document.getElementById('uploadLabel');
+            if (fileInput.files[0]) {
+                label.textContent = fileInput.files[0].name;
+            }
+        }
+
+        async function uploadDocument() {
+            const fileInput = document.getElementById('fileInput');
+            const status = document.getElementById('uploadStatus');
+            
+            if (!fileInput.files[0]) {
+                status.innerHTML = '<span class="error">Please select a file first</span>';
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            
+            status.innerHTML = 'Uploading and processing...';
+            
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await response.json();
+                status.innerHTML = `<span class="success">✓ ${result.message}</span>`;
+                addMessage('assistant', `📚 Document "${fileInput.files[0].name}" uploaded successfully! I'm now ready to answer your questions about it.`);
+            } catch (error) {
+                status.innerHTML = '<span class="error">✗ Error uploading file</span>';
+            }
+        }
+        
+        async function sendMessage() {
+            const queryInput = document.getElementById('queryInput');
+            const providerSelect = document.getElementById('providerSelect');
+            const sendBtn = document.getElementById('sendBtn');
+            const query = queryInput.value.trim();
+            
+            if (!query) {
+                return;
+            }
+            
+            // Add user message to chat
+            addMessage('user', query);
+            queryInput.value = '';
+            
+            // Show typing indicator
+            const typingIndicator = document.createElement('div');
+            typingIndicator.className = 'typing-indicator';
+            typingIndicator.textContent = 'AI is thinking...';
+            document.getElementById('chatContainer').appendChild(typingIndicator);
+            scrollToBottom();
+            
+            // Disable send button
+            sendBtn.disabled = true;
+            
+            try {
+                const response = await fetch('/query', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ 
+                        query: query,
+                        provider: providerSelect.value
+                    })
+                });
+                const result = await response.json();
+                
+                // Remove typing indicator
+                typingIndicator.remove();
+                
+                // Add AI response to chat
+                addMessage('assistant', result.answer);
+            } catch (error) {
+                typingIndicator.remove();
+                addMessage('assistant', '😔 Sorry, I encountered an error processing your request. Please try again.');
+            }
+            
+            // Re-enable send button
+            sendBtn.disabled = false;
+            queryInput.focus();
+        }
+
+        function addMessage(role, content) {
+            const chatContainer = document.getElementById('chatContainer');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${role}`;
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            
+            if (role === 'assistant') {
+                contentDiv.innerHTML = marked.parse(content);
+            } else {
+                contentDiv.textContent = content;
+            }
+            
+            messageDiv.appendChild(contentDiv);
+            chatContainer.appendChild(messageDiv);
+            scrollToBottom();
+        }
+
+        function scrollToBottom() {
+            const chatContainer = document.getElementById('chatContainer');
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        document.getElementById('queryInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+    </script>
+</body>
+</html>

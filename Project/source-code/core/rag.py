@@ -51,11 +51,11 @@ class RAGSystem:
         )
         return text_splitter.split_documents(documents)
 
-    def create_vector_store(self, documents):
+    def create_vector_store(self, documents, persist_directory="../chroma_db"):
         self.vector_store = Chroma.from_documents(
             documents=documents,
             embedding=self.embeddings,
-            persist_directory="../chroma_db"
+            persist_directory=persist_directory
         )
         self.vector_store.persist()
 

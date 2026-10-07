@@ -28,11 +28,44 @@
                 <div class="stat-value" id="lowCount">0</div>
                 <div class="stat-label">Low Priority</div>
             </div>
+            <div class="stat-card unscored">
+                <div class="stat-value" id="unscoredCount">0</div>
+                <div class="stat-label">Unscored</div>
+            </div>
             <div class="stat-card total">
                 <div class="stat-value" id="totalCount">0</div>
                 <div class="stat-label">Total Leads</div>
             </div>
         </div>
+
+        <section class="analytics-section" aria-labelledby="analyticsTitle">
+            <div class="analytics-heading">
+                <h3 id="analyticsTitle">Lead Analytics</h3>
+                <p>Sample database and current-session leads</p>
+            </div>
+            <div class="analytics-grid">
+                <article class="analytics-panel" aria-labelledby="priorityChartTitle">
+                    <h4 id="priorityChartTitle">Priority distribution</h4>
+                    <div class="priority-chart-layout">
+                        <div id="priorityDonut" class="priority-donut" role="img" aria-label="No leads yet">
+                            <div class="priority-donut-center">
+                                <strong id="analyticsLeadTotal">0</strong>
+                                <span>Leads</span>
+                            </div>
+                        </div>
+                        <div id="priorityLegend" class="priority-legend" aria-label="Priority totals"></div>
+                    </div>
+                </article>
+                <article class="analytics-panel" aria-labelledby="scoreChartTitle">
+                    <h4 id="scoreChartTitle">Score ranges</h4>
+                    <div id="scoreChart" class="score-chart" aria-label="Lead counts by qualification score range"></div>
+                </article>
+                <article class="analytics-panel" aria-labelledby="sourceChartTitle">
+                    <h4 id="sourceChartTitle">Lead sources</h4>
+                    <div id="sourceChart" class="score-chart" aria-label="Lead counts by source"></div>
+                </article>
+            </div>
+        </section>
 
         <!-- Knowledge-base Q&A Section -->
         <section class="assistant-section" aria-labelledby="assistantTitle">
@@ -197,9 +230,13 @@
             container.querySelector('.chat-welcome')?.remove();
             const message = document.createElement('div');
             message.className = `chat-message ${role}`;
-            const text = document.createElement('p');
-            text.textContent = content;
-            message.appendChild(text);
+            if (role === 'assistant') {
+                appendMarkdown(message, content);
+            } else {
+                const text = document.createElement('p');
+                text.textContent = content;
+                message.appendChild(text);
+            }
             if (sources.length) {
                 const sourceNote = document.createElement('small');
                 sourceNote.textContent = `Sources: ${sources.join(', ')}`;
@@ -207,6 +244,166 @@
             }
             container.appendChild(message);
             container.scrollTop = container.scrollHeight;
+        }
+
+        function appendMarkdown(container, markdown) {
+            const lines = String(markdown).replace(/\r\n?/g, '\n').split('\n');
+            let index = 0;
+
+            while (index < lines.length) {
+                const line = lines[index];
+                if (!line.trim()) {
+                    index++;
+                    continue;
+                }
+
+                if (/^\s*```/.test(line)) {
+                    const codeLines = [];
+                    index++;
+                    while (index < lines.length && !/^\s*```/.test(lines[index])) {
+                        codeLines.push(lines[index++]);
+                    }
+                    if (index < lines.length) index++;
+                    const pre = document.createElement('pre');
+                    const code = document.createElement('code');
+                    code.textContent = codeLines.join('\n');
+                    pre.appendChild(code);
+                    container.appendChild(pre);
+                    continue;
+                }
+
+                const heading = line.match(/^(#{1,6})\s+(.+)$/);
+                if (heading) {
+                    const element = document.createElement(`h${heading[1].length}`);
+                    renderInlineMarkdown(element, heading[2]);
+                    container.appendChild(element);
+                    index++;
+                    continue;
+                }
+
+                if (/^(?:-{3,}|_{3,}|\*{3,})$/.test(line.trim())) {
+                    container.appendChild(document.createElement('hr'));
+                    index++;
+                    continue;
+                }
+
+                if (line.includes('|') && isMarkdownTableSeparator(lines[index + 1] || '')) {
+                    const headers = splitMarkdownTableRow(line);
+                    const tableWrap = document.createElement('div');
+                    tableWrap.className = 'chat-table-wrap';
+                    const table = document.createElement('table');
+                    table.className = 'chat-table';
+                    const thead = document.createElement('thead');
+                    const headerRow = document.createElement('tr');
+                    headers.forEach(value => {
+                        const cell = document.createElement('th');
+                        renderInlineMarkdown(cell, value);
+                        headerRow.appendChild(cell);
+                    });
+                    thead.appendChild(headerRow);
+                    table.appendChild(thead);
+
+                    const tbody = document.createElement('tbody');
+                    index += 2;
+                    while (index < lines.length && lines[index].includes('|') && lines[index].trim()) {
+                        const values = splitMarkdownTableRow(lines[index++]);
+                        const row = document.createElement('tr');
+                        headers.forEach((_, cellIndex) => {
+                            const cell = document.createElement('td');
+                            renderInlineMarkdown(cell, values[cellIndex] || '');
+                            row.appendChild(cell);
+                        });
+                        tbody.appendChild(row);
+                    }
+                    table.appendChild(tbody);
+                    tableWrap.appendChild(table);
+                    container.appendChild(tableWrap);
+                    continue;
+                }
+
+                const listItem = line.match(/^\s*(?:([-+*])|(\d+)\.)\s+(.+)$/);
+                if (listItem) {
+                    const list = document.createElement(listItem[2] ? 'ol' : 'ul');
+                    while (index < lines.length) {
+                        const item = lines[index].match(/^\s*(?:([-+*])|(\d+)\.)\s+(.+)$/);
+                        if (!item || Boolean(item[2]) !== Boolean(listItem[2])) break;
+                        const listElement = document.createElement('li');
+                        renderInlineMarkdown(listElement, item[3]);
+                        list.appendChild(listElement);
+                        index++;
+                    }
+                    container.appendChild(list);
+                    continue;
+                }
+
+                if (/^\s*>\s?/.test(line)) {
+                    const quote = document.createElement('blockquote');
+                    const paragraph = document.createElement('p');
+                    const quoteLines = [];
+                    while (index < lines.length && /^\s*>\s?/.test(lines[index])) {
+                        quoteLines.push(lines[index++].replace(/^\s*>\s?/, ''));
+                    }
+                    renderInlineMarkdown(paragraph, quoteLines.join(' '));
+                    quote.appendChild(paragraph);
+                    container.appendChild(quote);
+                    continue;
+                }
+
+                const paragraphLines = [line];
+                index++;
+                while (index < lines.length && lines[index].trim() && !isMarkdownBlockStart(lines, index)) {
+                    paragraphLines.push(lines[index++]);
+                }
+                const paragraph = document.createElement('p');
+                renderInlineMarkdown(paragraph, paragraphLines.join(' '));
+                container.appendChild(paragraph);
+            }
+        }
+
+        function isMarkdownBlockStart(lines, index) {
+            const line = lines[index];
+            return /^\s*(?:```|#{1,6}\s|>|[-+*]\s|\d+\.\s)/.test(line)
+                || /^(?:-{3,}|_{3,}|\*{3,})$/.test(line.trim())
+                || (line.includes('|') && isMarkdownTableSeparator(lines[index + 1] || ''));
+        }
+
+        function isMarkdownTableSeparator(line) {
+            const cells = splitMarkdownTableRow(line);
+            return cells.length > 1 && cells.every(cell => /^:?-{3,}:?$/.test(cell));
+        }
+
+        function splitMarkdownTableRow(line) {
+            return line.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map(cell => cell.trim());
+        }
+
+        function renderInlineMarkdown(container, text) {
+            const tokenPattern = /(\*\*[^*]+?\*\*|__[^_]+?__|~~[^~]+?~~|`[^`]+`|\*[^*]+?\*|_[^_]+?_)/g;
+            String(text).split(tokenPattern).forEach(token => {
+                if (!token) return;
+                let tagName = '';
+                let value = token;
+                if ((token.startsWith('**') && token.endsWith('**')) || (token.startsWith('__') && token.endsWith('__'))) {
+                    tagName = 'strong';
+                    value = token.slice(2, -2);
+                } else if (token.startsWith('~~') && token.endsWith('~~')) {
+                    tagName = 'del';
+                    value = token.slice(2, -2);
+                } else if (token.startsWith('`') && token.endsWith('`')) {
+                    tagName = 'code';
+                    value = token.slice(1, -1);
+                } else if ((token.startsWith('*') && token.endsWith('*')) || (token.startsWith('_') && token.endsWith('_'))) {
+                    tagName = 'em';
+                    value = token.slice(1, -1);
+                }
+
+                if (tagName) {
+                    const element = document.createElement(tagName);
+                    element.textContent = value;
+                    container.appendChild(element);
+                } else {
+                    container.appendChild(document.createTextNode(token));
+                }
+            });
         }
         
         // Handle form submission
@@ -257,11 +454,20 @@
         // Load leads from API
         async function loadLeads() {
             try {
-                const response = await fetch('/api/leads/list');
-                const data = await response.json();
+                const [leadResponse, statsResponse] = await Promise.all([
+                    fetch('/api/leads/list'),
+                    fetch('/api/leads/statistics')
+                ]);
+                if (!leadResponse.ok || !statsResponse.ok) {
+                    throw new Error('Unable to load lead data and statistics.');
+                }
+                const [data, statistics] = await Promise.all([
+                    leadResponse.json(),
+                    statsResponse.json()
+                ]);
                 leads = data.leads || [];
                 renderLeads(leads);
-                updateStats(leads);
+                updateStats(statistics);
             } catch (error) {
                 console.error('Error loading leads:', error);
             }
@@ -326,15 +532,106 @@
         }
         
         // Update statistics
-        function updateStats(leadsList) {
-            const high = leadsList.filter(l => l.qualification.priority === 'HIGH').length;
-            const medium = leadsList.filter(l => l.qualification.priority === 'MEDIUM').length;
-            const low = leadsList.filter(l => l.qualification.priority === 'LOW').length;
-            
-            document.getElementById('highCount').textContent = high;
-            document.getElementById('mediumCount').textContent = medium;
-            document.getElementById('lowCount').textContent = low;
-            document.getElementById('totalCount').textContent = leadsList.length;
+        function updateStats(statistics) {
+            const priorities = statistics.priority_counts;
+            document.getElementById('highCount').textContent = priorities.HIGH;
+            document.getElementById('mediumCount').textContent = priorities.MEDIUM;
+            document.getElementById('lowCount').textContent = priorities.LOW;
+            document.getElementById('unscoredCount').textContent = priorities.UNSCORED;
+            document.getElementById('totalCount').textContent = statistics.total;
+            renderAnalytics(statistics);
+        }
+
+        function renderAnalytics(statistics) {
+            const priorities = [
+                { label: 'High', count: statistics.priority_counts.HIGH, color: '#ef4444' },
+                { label: 'Medium', count: statistics.priority_counts.MEDIUM, color: '#f59e0b' },
+                { label: 'Low', count: statistics.priority_counts.LOW, color: '#6b7280' },
+                { label: 'Unscored', count: statistics.priority_counts.UNSCORED, color: '#94a3b8' }
+            ];
+            const total = statistics.total;
+            const donut = document.getElementById('priorityDonut');
+            let currentAngle = 0;
+            const segments = priorities.filter(priority => priority.count > 0).map(priority => {
+                const startAngle = currentAngle;
+                currentAngle += (priority.count / total) * 360;
+                return `${priority.color} ${startAngle}deg ${currentAngle}deg`;
+            });
+
+            donut.style.background = segments.length
+                ? `conic-gradient(${segments.join(', ')})`
+                : 'conic-gradient(rgba(255, 255, 255, 0.14) 0deg 360deg)';
+            donut.setAttribute('aria-label', total
+                ? priorities.map(priority => `${priority.label}: ${priority.count}`).join(', ')
+                : 'No leads yet');
+            document.getElementById('analyticsLeadTotal').textContent = total;
+
+            const legend = document.getElementById('priorityLegend');
+            legend.replaceChildren();
+            priorities.forEach(priority => {
+                const item = document.createElement('div');
+                item.className = 'priority-legend-item';
+                const marker = document.createElement('span');
+                marker.className = 'priority-legend-marker';
+                marker.style.backgroundColor = priority.color;
+                const label = document.createElement('span');
+                label.textContent = priority.label;
+                const count = document.createElement('strong');
+                count.textContent = priority.count;
+                item.append(marker, label, count);
+                legend.appendChild(item);
+            });
+
+            const scoreColors = { '0-39': '#6b7280', '40-69': '#f59e0b', '70-100': '#ef4444', Unscored: '#94a3b8' };
+            renderBarChart('scoreChart', statistics.score_ranges.map(range => ({
+                ...range,
+                color: scoreColors[range.label]
+            })), 'No lead data yet.');
+
+            const sourceColors = ['#667eea', '#22c55e', '#06b6d4', '#f59e0b', '#ef4444'];
+            const sourceRanges = Object.entries(statistics.source_counts)
+                .sort((left, right) => right[1] - left[1])
+                .map(([label, count], index) => ({
+                    label,
+                    count,
+                    color: sourceColors[index % sourceColors.length]
+                }));
+            renderBarChart('sourceChart', sourceRanges, 'No lead sources yet.', 'source-chart-row');
+        }
+
+        function renderBarChart(containerId, entries, emptyText, rowClass = '') {
+            const chart = document.getElementById(containerId);
+            chart.replaceChildren();
+
+            if (!entries.length) {
+                const emptyMessage = document.createElement('p');
+                emptyMessage.className = 'chart-empty';
+                emptyMessage.textContent = emptyText;
+                chart.appendChild(emptyMessage);
+                return;
+            }
+
+            const largestCount = Math.max(...entries.map(entry => entry.count), 1);
+            entries.forEach(entry => {
+                const row = document.createElement('div');
+                row.className = rowClass ? `score-chart-row ${rowClass}` : 'score-chart-row';
+                const label = document.createElement('span');
+                label.className = 'score-chart-label';
+                label.textContent = entry.label;
+                label.title = entry.label;
+                const track = document.createElement('div');
+                track.className = 'score-chart-track';
+                const bar = document.createElement('span');
+                bar.className = 'score-chart-bar';
+                bar.style.width = `${(entry.count / largestCount) * 100}%`;
+                bar.style.backgroundColor = entry.color;
+                track.appendChild(bar);
+                const count = document.createElement('strong');
+                count.className = 'score-chart-count';
+                count.textContent = entry.count;
+                row.append(label, track, count);
+                chart.appendChild(row);
+            });
         }
     </script>
 </body>

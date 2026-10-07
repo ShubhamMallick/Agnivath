@@ -105,6 +105,114 @@ body {
     white-space: pre-wrap;
 }
 
+.chat-message.assistant p {
+    margin: 0;
+    white-space: normal;
+}
+
+.chat-message.assistant h1,
+.chat-message.assistant h2,
+.chat-message.assistant h3,
+.chat-message.assistant h4,
+.chat-message.assistant h5,
+.chat-message.assistant h6 {
+    margin: 5px 0 0;
+    line-height: 1.3;
+}
+
+.chat-message.assistant h1 { font-size: 1.25em; }
+.chat-message.assistant h2 { font-size: 1.15em; }
+.chat-message.assistant h3,
+.chat-message.assistant h4 { font-size: 1.05em; }
+
+.chat-message.assistant ul,
+.chat-message.assistant ol {
+    margin: 0;
+    padding-left: 22px;
+}
+
+.chat-message.assistant li + li {
+    margin-top: 5px;
+}
+
+.chat-message.assistant strong {
+    color: #ffffff;
+    font-weight: 700;
+}
+
+.chat-message.assistant em {
+    color: #dbeafe;
+}
+
+.chat-message.assistant blockquote {
+    margin: 0;
+    padding: 8px 12px;
+    border-left: 3px solid #667eea;
+    color: rgba(255, 255, 255, 0.8);
+    background: rgba(0, 0, 0, 0.12);
+}
+
+.chat-message.assistant pre {
+    max-width: 100%;
+    overflow-x: auto;
+    margin: 0;
+    padding: 10px 12px;
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.25);
+    white-space: pre;
+}
+
+.chat-message.assistant code {
+    padding: 1px 4px;
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.2);
+    font-family: Consolas, 'Courier New', monospace;
+    font-size: 0.9em;
+}
+
+.chat-message.assistant pre code {
+    padding: 0;
+    background: transparent;
+    font-size: 0.95em;
+}
+
+.chat-table-wrap {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+.chat-table {
+    width: 100%;
+    min-width: 440px;
+    border-collapse: collapse;
+    font-size: 0.9em;
+}
+
+.chat-table th,
+.chat-table td {
+    padding: 8px 10px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    text-align: left;
+    vertical-align: top;
+    overflow-wrap: anywhere;
+}
+
+.chat-table th {
+    background: rgba(102, 126, 234, 0.2);
+    color: #ffffff;
+}
+
+.chat-table tr:nth-child(even) td {
+    background: rgba(255, 255, 255, 0.035);
+}
+
+.chat-message.assistant hr {
+    width: 100%;
+    border: 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.18);
+}
+
 .chat-message.user {
     align-self: flex-end;
     background: rgba(102, 126, 234, 0.3);
@@ -199,6 +307,10 @@ body {
     border-left: 4px solid #6b7280;
 }
 
+.stat-card.unscored {
+    border-left: 4px solid #94a3b8;
+}
+
 .stat-card.total {
     border-left: 4px solid #667eea;
 }
@@ -212,11 +324,167 @@ body {
 .stat-card.high .stat-value { color: #ef4444; }
 .stat-card.medium .stat-value { color: #f59e0b; }
 .stat-card.low .stat-value { color: #6b7280; }
+.stat-card.unscored .stat-value { color: #cbd5e1; }
 .stat-card.total .stat-value { color: #667eea; }
 
 .stat-label {
     font-size: 0.9em;
     opacity: 0.8;
+}
+
+/* Lead analytics */
+.analytics-section {
+    margin-bottom: 30px;
+}
+
+.analytics-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 16px;
+    margin-bottom: 14px;
+}
+
+.analytics-heading h3 {
+    font-size: 1.2em;
+}
+
+.analytics-heading p {
+    color: rgba(255, 255, 255, 0.65);
+    font-size: 0.9em;
+}
+
+.analytics-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+}
+
+.analytics-panel {
+    min-width: 0;
+    padding: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(20px);
+}
+
+.analytics-panel h4 {
+    margin-bottom: 20px;
+    font-size: 1em;
+}
+
+.priority-chart-layout {
+    display: flex;
+    align-items: center;
+    justify-content: space-evenly;
+    gap: 24px;
+    min-height: 180px;
+}
+
+.priority-donut {
+    display: grid;
+    flex: 0 0 170px;
+    width: 170px;
+    height: 170px;
+    place-items: center;
+    border-radius: 50%;
+    background: conic-gradient(rgba(255, 255, 255, 0.14) 0deg 360deg);
+}
+
+.priority-donut-center {
+    display: flex;
+    width: 68%;
+    height: 68%;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: #1b2540;
+}
+
+.priority-donut-center strong {
+    font-size: 1.8em;
+}
+
+.priority-donut-center span {
+    color: rgba(255, 255, 255, 0.65);
+    font-size: 0.85em;
+}
+
+.priority-legend {
+    display: grid;
+    width: min(180px, 100%);
+    gap: 13px;
+}
+
+.priority-legend-item {
+    display: grid;
+    grid-template-columns: 10px 1fr auto;
+    align-items: center;
+    gap: 9px;
+    font-size: 0.9em;
+}
+
+.priority-legend-marker {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+
+.priority-legend-item strong,
+.score-chart-count {
+    font-variant-numeric: tabular-nums;
+}
+
+.score-chart {
+    display: grid;
+    min-height: 180px;
+    align-content: center;
+    gap: 24px;
+}
+
+.score-chart-row {
+    display: grid;
+    grid-template-columns: 58px minmax(0, 1fr) 28px;
+    align-items: center;
+    gap: 12px;
+}
+
+.score-chart-row.source-chart-row {
+    grid-template-columns: minmax(105px, 150px) minmax(0, 1fr) 28px;
+}
+
+.score-chart-label,
+.score-chart-count {
+    font-size: 0.88em;
+}
+
+.score-chart-label {
+    overflow: hidden;
+    color: rgba(255, 255, 255, 0.75);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.score-chart-track {
+    height: 12px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.score-chart-bar {
+    display: block;
+    height: 100%;
+    min-width: 0;
+    border-radius: inherit;
+    transition: width 0.35s ease;
+}
+
+.chart-empty {
+    color: rgba(255, 255, 255, 0.55);
+    text-align: center;
 }
 
 /* Form Section */
@@ -514,6 +782,16 @@ body {
     .stats-section {
         grid-template-columns: repeat(2, 1fr);
     }
+
+    .analytics-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .analytics-heading {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
+    }
     
     .form-row {
         grid-template-columns: 1fr;
@@ -535,6 +813,17 @@ body {
 
     .assistant-heading {
         flex-direction: column;
+    }
+
+    .priority-chart-layout {
+        justify-content: space-between;
+        gap: 14px;
+    }
+
+    .priority-donut {
+        flex-basis: 145px;
+        width: 145px;
+        height: 145px;
     }
 
     .chat-message {

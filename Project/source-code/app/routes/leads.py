@@ -146,6 +146,75 @@ async def list_leads(priority: Optional[str] = None):
     return {"leads": leads_db, "count": len(leads_db)}
 
 
+@router.get("/statistics")
+async def lead_statistics():
+    """Summarize sample leads and leads processed in the current session."""
+    sample_data_path = Path(__file__).resolve().parents[3] / "sample_data" / "leads.json"
+    sample_leads = []
+    if sample_data_path.exists():
+        with sample_data_path.open("r", encoding="utf-8") as sample_file:
+            sample_leads = json.load(sample_file)
+
+    leads_by_id = {}
+    for index, lead in enumerate(sample_leads):
+        lead_id = str(lead.get("lead_id") or f"sample-{index}")
+        leads_by_id[lead_id] = {
+            "source": lead.get("source") or "Unknown",
+            "qualification": lead.get("qualification"),
+        }
+
+    for lead in leads_db:
+        original_data = lead.get("original_data") or {}
+        lead_id = str(lead.get("lead_id") or f"session-{len(leads_by_id)}")
+        leads_by_id[lead_id] = {
+            "source": original_data.get("source") or "Unknown",
+            "qualification": lead.get("qualification"),
+        }
+
+    priority_counts = {"HIGH": 0, "MEDIUM": 0, "LOW": 0, "UNSCORED": 0}
+    score_ranges = {"0-39": 0, "40-69": 0, "70-100": 0, "Unscored": 0}
+    source_counts = {}
+
+    for lead in leads_by_id.values():
+        source = lead["source"]
+        source_counts[source] = source_counts.get(source, 0) + 1
+        qualification = lead.get("qualification") or {}
+        priority = str(qualification.get("priority") or "").upper()
+        if priority in priority_counts and priority != "UNSCORED":
+            priority_counts[priority] += 1
+        else:
+            priority_counts["UNSCORED"] += 1
+
+        score = qualification.get("score")
+        if score is None:
+            score_ranges["Unscored"] += 1
+        else:
+            try:
+                score = float(score)
+            except (TypeError, ValueError):
+                score_ranges["Unscored"] += 1
+                continue
+
+            if score < 40:
+                score_ranges["0-39"] += 1
+            elif score < 70:
+                score_ranges["40-69"] += 1
+            else:
+                score_ranges["70-100"] += 1
+
+    return {
+        "total": len(leads_by_id),
+        "sample_leads": len(sample_leads),
+        "session_leads": len(leads_db),
+        "priority_counts": priority_counts,
+        "score_ranges": [
+            {"label": label, "count": count}
+            for label, count in score_ranges.items()
+        ],
+        "source_counts": source_counts,
+    }
+
+
 @router.get("/{lead_id}")
 async def get_lead(lead_id: str):
     """Get a specific lead by ID"""

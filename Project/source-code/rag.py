@@ -3,6 +3,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import Chroma
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain.chains import RetrievalQA
+from langchain.prompts import PromptTemplate
 from dotenv import load_dotenv
 import os
 
@@ -60,9 +61,32 @@ class RAGSystem:
 
     def create_qa_chain(self):
         retriever = self.vector_store.as_retriever()
+        
+        # Custom prompt template for structured responses
+        prompt_template = """You are a helpful assistant that provides well-structured, formatted answers based on the given context.
+
+Context: {context}
+
+Question: {question}
+
+Instructions for your answer:
+1. Use proper formatting with bullet points, numbered lists, or tables where appropriate
+2. Organize information into clear sections with headers
+3. Use bold or emphasis for key terms
+4. Make the response easy to read and scan
+5. If the information doesn't exist in the context, state that clearly
+
+Answer:"""
+
+        PROMPT = PromptTemplate(
+            template=prompt_template,
+            input_variables=["context", "question"]
+        )
+        
         self.qa_chain = RetrievalQA.from_chain_type(
             llm=self.current_llm,
-            retriever=retriever
+            retriever=retriever,
+            chain_type_kwargs={"prompt": PROMPT}
         )
 
     def set_provider(self, provider):

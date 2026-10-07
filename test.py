@@ -44,13 +44,16 @@ client = OpenAI(
     base_url=base_url
 )
 
+# Get user input
+user_question = input("\nEnter your question: ").strip()
+
 # Send test request
 response = client.chat.completions.create(
     model=model,
     messages=[
         {
             "role": "user",
-            "content": "Hello! Explain artificial intelligence in one simple sentence."
+            "content": user_question
         }
     ]
 )

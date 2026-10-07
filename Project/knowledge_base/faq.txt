@@ -1,0 +1,19 @@
+Sales Assistant FAQ
+
+Q: What information should be extracted from a website lead?
+A: Extract contact information, company, job title, company size when available, industry, product interest, use case, pain points, budget signals, timeline, purchase intent, urgency, source, language, requirements and missing information.
+
+Q: What does a high-priority lead mean?
+A: A high-priority lead has several strong buying signals such as a specific requirement, clear purchase intent, suitable company profile, a defined timeline, a demo request or an indication of budget.
+
+Q: Should the AI make the final sales decision?
+A: No. The AI should assist the sales team by prioritizing leads, explaining signals and recommending next actions. A salesperson remains responsible for the final decision.
+
+Q: What if information is missing?
+A: The system should explicitly identify missing information rather than inventing values.
+
+Q: Can the assistant process multilingual leads?
+A: Yes. The assistant can detect the lead language, extract structured information and provide a response in the lead's language when supported by the configured language model.
+
+Q: What should happen after qualification?
+A: The system should present the score, priority, reasons, relevant product information, missing information and a recommended next action to the sales team.

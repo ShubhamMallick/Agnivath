@@ -1,0 +1,20 @@
+Example Pricing Information
+
+Starter AI Solution:
+Suitable for small organizations and basic use cases.
+
+Professional AI Solution:
+Suitable for growing organizations requiring multiple AI workflows.
+
+Enterprise AI Solution:
+Designed for organizations with large employee bases, complex requirements and enterprise deployment needs.
+
+Enterprise pricing depends on:
+- Number of users
+- AI workloads
+- Number of documents processed
+- Required integrations
+- Deployment requirements
+- Security requirements
+
+Exact pricing requires discussion with the sales team.

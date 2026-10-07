@@ -15,6 +15,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from core.lead_processor import LeadProcessor
 from core.lead_qualifier import LeadQualifier
 from core.notifier import Notifier
+from core.lead_store import LeadStore
 import json
 
 router = APIRouter(prefix="/api/leads", tags=["leads"])
@@ -22,10 +23,8 @@ router = APIRouter(prefix="/api/leads", tags=["leads"])
 # Initialize components
 lead_processor = LeadProcessor(provider="groq")
 lead_qualifier = LeadQualifier(provider="groq")
-notifier = Notifier()
-
-# In-memory storage for demo (use database in production)
-leads_db = []
+lead_store = LeadStore(Path(__file__).parent.parent.parent / "data" / "leads.sqlite3")
+notifier = Notifier(lead_store)
 
 
 class LeadIngest(BaseModel):
@@ -87,7 +86,7 @@ async def ingest_lead(lead: LeadIngest):
             "notification_sent": notification_sent,
             "created_at": datetime.utcnow().isoformat()
         }
-        leads_db.append(lead_record)
+        lead_store.save(lead_record)
         
         return {
             "status": "success",
@@ -139,11 +138,12 @@ async def list_leads(priority: Optional[str] = None):
     """
     List all leads with optional priority filter
     """
+    stored_leads = lead_store.list_leads()
     if priority:
-        filtered = [lead for lead in leads_db if lead["qualification"]["priority"] == priority]
+        filtered = [lead for lead in stored_leads if lead["qualification"]["priority"] == priority]
         return {"leads": filtered, "count": len(filtered)}
     
-    return {"leads": leads_db, "count": len(leads_db)}
+    return {"leads": stored_leads, "count": len(stored_leads)}
 
 
 @router.get("/statistics")
@@ -163,7 +163,8 @@ async def lead_statistics():
             "qualification": lead.get("qualification"),
         }
 
-    for lead in leads_db:
+    database_leads = lead_store.list_leads()
+    for lead in database_leads:
         original_data = lead.get("original_data") or {}
         lead_id = str(lead.get("lead_id") or f"session-{len(leads_by_id)}")
         leads_by_id[lead_id] = {
@@ -205,7 +206,7 @@ async def lead_statistics():
     return {
         "total": len(leads_by_id),
         "sample_leads": len(sample_leads),
-        "session_leads": len(leads_db),
+        "database_leads": len(database_leads),
         "priority_counts": priority_counts,
         "score_ranges": [
             {"label": label, "count": count}
@@ -215,13 +216,33 @@ async def lead_statistics():
     }
 
 
+@router.get("/notifications")
+async def list_notifications(min_priority: str = "MEDIUM"):
+    """List demo notifications at or above the requested priority."""
+    min_priority = min_priority.upper()
+    if min_priority not in {"HIGH", "MEDIUM", "LOW"}:
+        raise HTTPException(status_code=400, detail="min_priority must be HIGH, MEDIUM, or LOW")
+    notifications = notifier.get_notifications(min_priority)
+    public_notifications = [
+        {key: value for key, value in notification.items() if key != "email"}
+        for notification in notifications
+    ]
+    return {"notifications": public_notifications, "count": len(public_notifications)}
+
+
+@router.delete("/notifications")
+async def clear_notifications():
+    """Clear in-memory demo notifications."""
+    count = notifier.clear_notifications()
+    return {"status": "success", "cleared": count}
+
+
 @router.get("/{lead_id}")
 async def get_lead(lead_id: str):
     """Get a specific lead by ID"""
-    for lead in leads_db:
-        if lead["lead_id"] == lead_id:
-            return lead
-    
+    lead = lead_store.get_lead(lead_id)
+    if lead:
+        return lead
     raise HTTPException(status_code=404, detail="Lead not found")
 
 

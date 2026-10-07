@@ -59,6 +59,7 @@ body::before {
 .assistant-section,
 .form-section,
 .leads-section,
+.notifications-section,
 .analytics-section,
 .stat-card,
 .analytics-panel {
@@ -652,6 +653,73 @@ body::before {
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 16px;
     padding: 30px;
+}
+
+.notifications-section {
+    margin-bottom: 30px;
+    padding: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(20px);
+}
+
+.notifications-list {
+    display: grid;
+    gap: 10px;
+}
+
+.notification-item {
+    display: grid;
+    gap: 8px;
+    padding: 14px 16px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-left: 3px solid #f59e0b;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.035);
+    animation: message-enter 280ms ease-out both;
+}
+
+.notification-item.priority-high {
+    border-left-color: #ef4444;
+}
+
+.notification-item.priority-medium {
+    border-left-color: #f59e0b;
+}
+
+.notification-item.priority-low {
+    border-left-color: #6b7280;
+}
+
+.notification-heading {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.notification-heading strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.notification-item p {
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
+.notification-item time {
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 0.82em;
+}
+
+.clear-notifications-btn {
+    background: rgba(239, 68, 68, 0.12) !important;
+}
+
+.clear-notifications-btn:hover {
+    border-color: rgba(239, 68, 68, 0.6) !important;
 }
 
 .section-header {

@@ -72,7 +72,8 @@ class LeadProcessor:
         company = str(lead_data.get("company") or "")
         job_title = str(lead_data.get("job_title") or "")
         source = str(lead_data.get("source") or "")
-        language = str(lead_data.get("language") or "English")
+        language = str(lead_data.get("language") or "English").strip()
+        auto_detect_language = language.casefold() in {"auto", "auto-detect", "auto detect"}
         
         prompt = PromptTemplate(
             template="""You are a sales lead information extraction expert. Extract structured information from the following lead data.
@@ -85,7 +86,7 @@ Lead Data:
 - Job Title: {job_title}
 - Message: {message}
 - Source: {source}
-- Language: {language}
+- Requested Language: {language}
 
 Extract the following information from the message and available data:
 1. company_size - Number of employees or company size (small, medium, large, startup, enterprise, etc.)
@@ -98,13 +99,15 @@ Extract the following information from the message and available data:
 8. purchase_intent - Level of purchase intent (high, medium, low, evaluating, browsing, etc.)
 9. action_requested - Specific action requested (demo, call, information, pricing, technical discussion, etc.)
 10. missing_info - List of important information that could not be extracted (e.g., budget, timeline, company size)
+11. language - Detected language of the lead message
 
 If information is not available in the message or provided data, mark it as null or empty.
 For missing_info, list what important business information is missing for sales qualification.
+If Requested Language is Auto-detect, identify the language from the lead message. Otherwise, keep the requested language.
 
 IMPORTANT: Return ONLY a valid JSON object. No markdown, no code blocks, no additional text. The response must start with {{ and end with }}.
 
-Return the result as a JSON object with these exact fields: company_size, industry, product_interest, use_case, pain_points, budget, timeline, purchase_intent, action_requested, missing_info.
+Return the result as a JSON object with these exact fields: company_size, industry, product_interest, use_case, pain_points, budget, timeline, purchase_intent, action_requested, missing_info, language.
 
 Extract only from the provided data. Do not invent or hallucinate information.""",
             input_variables=["name", "email", "phone", "company", "job_title", "message", "source", "language"]
@@ -146,7 +149,7 @@ Extract only from the provided data. Do not invent or hallucinate information.""
                 timeline=extracted_data.get("timeline") or None,
                 purchase_intent=extracted_data.get("purchase_intent") or None,
                 action_requested=extracted_data.get("action_requested") or None,
-                language=language,
+                language=(str(extracted_data.get("language") or "Unknown") if auto_detect_language else language),
                 missing_info=extracted_data.get("missing_info") or []
             )
             
@@ -171,6 +174,6 @@ Extract only from the provided data. Do not invent or hallucinate information.""
                 timeline=None,
                 purchase_intent=None,
                 action_requested=None,
-                language=language,
-                missing_info=["Extraction failed - using fallback"]
+                language="Unknown" if auto_detect_language else language,
+                missing_info=["Extraction failed - using fallback"] + (["Language could not be detected"] if auto_detect_language else [])
             )

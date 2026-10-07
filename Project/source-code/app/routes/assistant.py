@@ -5,7 +5,7 @@ import json
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
-from app.routes.leads import lead_qualifier, leads_db
+from app.routes.leads import lead_qualifier, lead_store
 
 router = APIRouter(prefix="/api/assistant", tags=["assistant"])
 
@@ -51,7 +51,7 @@ async def chat(request: ChatRequest):
             for source, content in knowledge_entries
         )
         processed_leads = []
-        for lead in leads_db:
+        for lead in lead_store.list_leads():
             extracted_info = lead.get("extracted_info") or {}
             processed_leads.append({
                 "lead_id": lead.get("lead_id"),
@@ -67,7 +67,7 @@ async def chat(request: ChatRequest):
         conversation = "\n".join(
             f"{turn.role}: {turn.content}" for turn in request.history[-8:]
         )
-        prompt = f"""You are a helpful assistant. The vector context contains all documents from the sales lead knowledge base. The processed-lead context contains leads added during this app session. Use both sources when relevant. If there are no processed leads, the list will be empty. Use the conversation history to understand follow-up questions. If the supplied context does not contain the answer, say so clearly and do not invent details.
+        prompt = f"""You are a helpful assistant. The vector context contains all documents from the sales lead knowledge base. The processed-lead context contains leads stored in the local database. Use both sources when relevant. If there are no processed leads, the list will be empty. Use the conversation history to understand follow-up questions. Reply in the language of the user's latest question when supported by the model; when drafting lead outreach, prefer that lead's detected language. If the supplied context does not contain the answer, say so clearly and do not invent details.
 
     For questions asking for all information, an overview, or everything you know, provide a comprehensive, organized summary covering every source and all relevant processed-lead data present in the supplied context. Do not limit the answer to one source or topic when other sources contain information. Name the source sections in the answer. For a specific question, focus on the relevant details. Do not claim that no other details are available when they appear elsewhere in the supplied context.
 

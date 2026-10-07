@@ -41,7 +41,7 @@
         <section class="analytics-section" aria-labelledby="analyticsTitle">
             <div class="analytics-heading">
                 <h3 id="analyticsTitle">Lead Analytics</h3>
-                <p>Sample database and current-session leads</p>
+                <p>Sample data and persistent lead database</p>
             </div>
             <div class="analytics-grid">
                 <article class="analytics-panel" aria-labelledby="priorityChartTitle">
@@ -64,6 +64,24 @@
                     <h4 id="sourceChartTitle">Lead sources</h4>
                     <div id="sourceChart" class="score-chart" aria-label="Lead counts by source"></div>
                 </article>
+            </div>
+        </section>
+
+        <section class="notifications-section" aria-labelledby="notificationsTitle">
+            <div class="section-header">
+                <h3 id="notificationsTitle">Sales Notifications</h3>
+                <div class="filters">
+                    <select id="notificationPriority" aria-label="Minimum notification priority">
+                        <option value="MEDIUM">Medium and high</option>
+                        <option value="HIGH">High only</option>
+                        <option value="LOW">All priorities</option>
+                    </select>
+                    <button type="button" id="refreshNotifications" class="refresh-btn">Refresh</button>
+                    <button type="button" id="clearNotifications" class="clear-notifications-btn">Clear</button>
+                </div>
+            </div>
+            <div id="notificationsList" class="notifications-list" aria-live="polite">
+                <div class="empty-state"><p>No notifications yet.</p></div>
             </div>
         </section>
 
@@ -142,6 +160,7 @@
                     <div class="form-group">
                         <label>Language</label>
                         <select id="language">
+                            <option value="Auto-detect" selected>Auto-detect</option>
                             <option value="English">English</option>
                             <option value="Hindi">Hindi</option>
                             <option value="Spanish">Spanish</option>
@@ -183,7 +202,12 @@
         // Load leads on page load
         document.addEventListener('DOMContentLoaded', () => {
             loadLeads();
+            loadNotifications();
         });
+
+        document.getElementById('refreshNotifications').addEventListener('click', loadNotifications);
+        document.getElementById('notificationPriority').addEventListener('change', loadNotifications);
+        document.getElementById('clearNotifications').addEventListener('click', clearNotifications);
 
         document.getElementById('clearChat').addEventListener('click', () => {
             chatHistory = [];
@@ -440,6 +464,7 @@
                     alert(`Lead processed successfully!\n\nProvider: ${result.provider_used}\nPriority: ${result.qualification.priority}\nScore: ${result.qualification.score}`);
                     document.getElementById('leadForm').reset();
                     loadLeads();
+                    loadNotifications();
                 } else {
                     alert('Error processing lead: ' + JSON.stringify(result));
                 }
@@ -470,6 +495,33 @@
                 updateStats(statistics);
             } catch (error) {
                 console.error('Error loading leads:', error);
+            }
+        }
+
+        async function loadNotifications() {
+            const priority = document.getElementById('notificationPriority').value;
+            try {
+                const response = await fetch(`/api/leads/notifications?min_priority=${encodeURIComponent(priority)}`);
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.detail || 'Unable to load notifications.');
+                renderNotifications(data.notifications || []);
+            } catch (error) {
+                renderNotificationMessage(error.message);
+            }
+        }
+
+        async function clearNotifications() {
+            const clearButton = document.getElementById('clearNotifications');
+            clearButton.disabled = true;
+            try {
+                const response = await fetch('/api/leads/notifications', { method: 'DELETE' });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.detail || 'Unable to clear notifications.');
+                await loadNotifications();
+            } catch (error) {
+                renderNotificationMessage(error.message);
+            } finally {
+                clearButton.disabled = false;
             }
         }
         
@@ -529,6 +581,51 @@
                     ${lead.notification_sent ? '<div class="notification-badge">🔔 Notification Sent</div>' : ''}
                 </div>
             `).join('');
+        }
+
+        function renderNotifications(notifications) {
+            const container = document.getElementById('notificationsList');
+            container.replaceChildren();
+            if (!notifications.length) {
+                renderNotificationMessage('No notifications for this priority filter.');
+                return;
+            }
+
+            notifications.forEach(notification => {
+                const item = document.createElement('article');
+                item.className = `notification-item priority-${String(notification.priority).toLowerCase()}`;
+                const heading = document.createElement('div');
+                heading.className = 'notification-heading';
+                const badge = document.createElement('span');
+                badge.className = `score-badge priority-${String(notification.priority).toLowerCase()}`;
+                badge.textContent = notification.priority;
+                const leadName = document.createElement('strong');
+                leadName.textContent = `${notification.lead_name || 'Lead'} · ${notification.company || 'Company not provided'}`;
+                heading.append(badge, leadName);
+
+                const message = document.createElement('p');
+                message.textContent = notification.message || 'A qualified lead needs follow-up.';
+                const nextAction = document.createElement('p');
+                nextAction.textContent = `Next action: ${notification.next_action || 'Review lead'}`;
+                const timestamp = document.createElement('time');
+                timestamp.dateTime = notification.timestamp || '';
+                timestamp.textContent = notification.timestamp
+                    ? new Date(notification.timestamp).toLocaleString()
+                    : '';
+
+                item.append(heading, message, nextAction, timestamp);
+                container.appendChild(item);
+            });
+        }
+
+        function renderNotificationMessage(text) {
+            const container = document.getElementById('notificationsList');
+            const emptyState = document.createElement('div');
+            emptyState.className = 'empty-state';
+            const message = document.createElement('p');
+            message.textContent = text;
+            emptyState.appendChild(message);
+            container.replaceChildren(emptyState);
         }
         
         // Update statistics

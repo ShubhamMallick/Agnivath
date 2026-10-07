@@ -14,6 +14,12 @@ ENV/
 # Vector database
 chroma_db/
 
+# Local lead database
+Project/source-code/data/leads.sqlite3
+
+# Local lead database
+Project/source-code/data/leads.sqlite3
+
 # IDE
 .vscode/
 .idea/

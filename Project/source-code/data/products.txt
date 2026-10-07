@@ -1,0 +1,51 @@
+Enterprise AI Platform
+
+Our Enterprise AI Platform is designed for medium and large organizations.
+
+Target customers:
+- Organizations with 100+ employees
+- Companies undergoing AI transformation
+- Organizations requiring enterprise automation
+
+Main capabilities:
+- Customer support automation
+- Document processing
+- Internal knowledge search
+- Workflow automation
+- AI-powered chatbots
+
+Typical implementation:
+4-12 weeks.
+
+Enterprise deployments can support large organizations and can be customized according to business requirements.
+
+
+AI Customer Support Solution
+
+Designed for companies that want to automate customer queries.
+
+Suitable for:
+- E-commerce
+- Retail
+- Finance
+- Education
+- Technology companies
+
+Main capabilities:
+- Automated customer responses
+- FAQ handling
+- Knowledge-base retrieval
+- Multilingual customer support
+
+
+AI Document Processing
+
+Designed to automate extraction and processing of information from business documents.
+
+Suitable for:
+- Healthcare
+- Finance
+- Insurance
+- Logistics
+
+Best suited for organizations processing large document volumes.

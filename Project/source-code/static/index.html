@@ -3,167 +3,261 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RAG Chat Assistant</title>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <title>Sales Lead Qualification Assistant</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
     <div class="header">
-        <h1>✨ RAG Chat Assistant</h1>
-        <p>Upload documents and unlock knowledge with AI</p>
+        <h1>🎯 Sales Lead Qualification Assistant</h1>
+        <p>AI-powered lead processing and qualification</p>
     </div>
     
     <div class="main-container">
-        <div class="upload-section">
-            <h3>📄 Upload Document</h3>
-            <div class="upload-area" onclick="document.getElementById('fileInput').click()">
-                <input type="file" id="fileInput" accept=".pdf,.docx" onchange="updateFileName()">
-                <div id="uploadLabel">Click to select PDF or DOCX file</div>
+        <!-- Stats Section -->
+        <div class="stats-section">
+            <div class="stat-card high">
+                <div class="stat-value" id="highCount">0</div>
+                <div class="stat-label">High Priority</div>
             </div>
-            <div class="upload-controls">
-                <button onclick="uploadDocument()">Upload & Process</button>
-                <span id="uploadStatus"></span>
+            <div class="stat-card medium">
+                <div class="stat-value" id="mediumCount">0</div>
+                <div class="stat-label">Medium Priority</div>
+            </div>
+            <div class="stat-card low">
+                <div class="stat-value" id="lowCount">0</div>
+                <div class="stat-label">Low Priority</div>
+            </div>
+            <div class="stat-card total">
+                <div class="stat-value" id="totalCount">0</div>
+                <div class="stat-label">Total Leads</div>
             </div>
         </div>
         
-        <div class="chat-container" id="chatContainer">
-            <div class="message assistant">
-                <div class="message-content">
-                    👋 Hello! I'm your AI-powered knowledge assistant. Upload a document and I'll help you explore and understand it through natural conversation.
+        <!-- Lead Form Section -->
+        <div class="form-section">
+            <h3>📝 Add New Lead</h3>
+            <form id="leadForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Name *</label>
+                        <input type="text" id="name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Email *</label>
+                        <input type="email" id="email" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Phone</label>
+                        <input type="text" id="phone">
+                    </div>
+                    <div class="form-group">
+                        <label>Company *</label>
+                        <input type="text" id="company" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Job Title *</label>
+                        <input type="text" id="job_title" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Source *</label>
+                        <select id="source" required>
+                            <option value="">Select source</option>
+                            <option value="Website Contact Form">Website Contact Form</option>
+                            <option value="Request Demo">Request Demo</option>
+                            <option value="Pricing Page">Pricing Page</option>
+                            <option value="Resource Download">Resource Download</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Message *</label>
+                    <textarea id="message" rows="4" required placeholder="Enter the lead's message..."></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>LLM Provider *</label>
+                        <select id="provider" required>
+                            <option value="groq">Groq (Fast, Free)</option>
+                            <option value="openrouter">OpenRouter (Premium Models)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Language</label>
+                        <select id="language">
+                            <option value="English">English</option>
+                            <option value="Hindi">Hindi</option>
+                            <option value="Spanish">Spanish</option>
+                            <option value="French">French</option>
+                            <option value="German">German</option>
+                        </select>
+                    </div>
+                </div>
+                <button type="submit" class="submit-btn">Process Lead ✨</button>
+            </form>
+        </div>
+        
+        <!-- Leads List Section -->
+        <div class="leads-section">
+            <div class="section-header">
+                <h3>📊 Qualified Leads</h3>
+                <div class="filters">
+                    <select id="priorityFilter" onchange="filterLeads()">
+                        <option value="all">All Priorities</option>
+                        <option value="HIGH">High Priority</option>
+                        <option value="MEDIUM">Medium Priority</option>
+                        <option value="LOW">Low Priority</option>
+                    </select>
+                    <button onclick="loadLeads()" class="refresh-btn">Refresh</button>
                 </div>
             </div>
-        </div>
-        
-        <div class="input-section">
-            <div class="input-controls">
-                <select id="providerSelect">
-                    <option value="openrouter">OpenRouter</option>
-                    <option value="groq">Groq</option>
-                </select>
-                <input type="text" id="queryInput" placeholder="Type your message..." autocomplete="off">
-                <button onclick="sendMessage()" id="sendBtn">Send ✨</button>
+            <div id="leadsList" class="leads-list">
+                <div class="empty-state">
+                    <p>No leads yet. Add a lead above to get started.</p>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
-        function updateFileName() {
-            const fileInput = document.getElementById('fileInput');
-            const label = document.getElementById('uploadLabel');
-            if (fileInput.files[0]) {
-                label.textContent = fileInput.files[0].name;
-            }
-        }
-
-        async function uploadDocument() {
-            const fileInput = document.getElementById('fileInput');
-            const status = document.getElementById('uploadStatus');
+        let leads = [];
+        
+        // Load leads on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadLeads();
+        });
+        
+        // Handle form submission
+        document.getElementById('leadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
             
-            if (!fileInput.files[0]) {
-                status.innerHTML = '<span class="error">Please select a file first</span>';
-                return;
-            }
+            const leadData = {
+                lead_id: 'L' + Date.now(),
+                name: document.getElementById('name').value,
+                email: document.getElementById('email').value,
+                phone: document.getElementById('phone').value,
+                company: document.getElementById('company').value,
+                job_title: document.getElementById('job_title').value,
+                message: document.getElementById('message').value,
+                source: document.getElementById('source').value,
+                language: document.getElementById('language').value,
+                provider: document.getElementById('provider').value
+            };
             
-            const formData = new FormData();
-            formData.append('file', fileInput.files[0]);
-            
-            status.innerHTML = 'Uploading and processing...';
+            const submitBtn = document.querySelector('.submit-btn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Processing...';
             
             try {
-                const response = await fetch('/upload', {
+                const response = await fetch('/api/leads/ingest', {
                     method: 'POST',
-                    body: formData
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(leadData)
                 });
+                
                 const result = await response.json();
-                status.innerHTML = `<span class="success">✓ ${result.message}</span>`;
-                addMessage('assistant', `📚 Document "${fileInput.files[0].name}" uploaded successfully! I'm now ready to answer your questions about it.`);
+                
+                if (result.status === 'success') {
+                    alert(`Lead processed successfully!\n\nProvider: ${result.provider_used}\nPriority: ${result.qualification.priority}\nScore: ${result.qualification.score}`);
+                    document.getElementById('leadForm').reset();
+                    loadLeads();
+                } else {
+                    alert('Error processing lead: ' + JSON.stringify(result));
+                }
             } catch (error) {
-                status.innerHTML = '<span class="error">✗ Error uploading file</span>';
+                alert('Error: ' + error.message);
+            }
+            
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Process Lead ✨';
+        });
+        
+        // Load leads from API
+        async function loadLeads() {
+            try {
+                const response = await fetch('/api/leads/list');
+                const data = await response.json();
+                leads = data.leads || [];
+                renderLeads(leads);
+                updateStats(leads);
+            } catch (error) {
+                console.error('Error loading leads:', error);
             }
         }
         
-        async function sendMessage() {
-            const queryInput = document.getElementById('queryInput');
-            const providerSelect = document.getElementById('providerSelect');
-            const sendBtn = document.getElementById('sendBtn');
-            const query = queryInput.value.trim();
+        // Filter leads by priority
+        function filterLeads() {
+            const filter = document.getElementById('priorityFilter').value;
+            if (filter === 'all') {
+                renderLeads(leads);
+            } else {
+                const filtered = leads.filter(lead => lead.qualification.priority === filter);
+                renderLeads(filtered);
+            }
+        }
+        
+        // Render leads list
+        function renderLeads(leadsToRender) {
+            const container = document.getElementById('leadsList');
             
-            if (!query) {
+            if (leadsToRender.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <p>No leads found.</p>
+                    </div>
+                `;
                 return;
             }
             
-            // Add user message to chat
-            addMessage('user', query);
-            queryInput.value = '';
-            
-            // Show typing indicator
-            const typingIndicator = document.createElement('div');
-            typingIndicator.className = 'typing-indicator';
-            typingIndicator.textContent = 'AI is thinking...';
-            document.getElementById('chatContainer').appendChild(typingIndicator);
-            scrollToBottom();
-            
-            // Disable send button
-            sendBtn.disabled = true;
-            
-            try {
-                const response = await fetch('/query', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ 
-                        query: query,
-                        provider: providerSelect.value
-                    })
-                });
-                const result = await response.json();
-                
-                // Remove typing indicator
-                typingIndicator.remove();
-                
-                // Add AI response to chat
-                addMessage('assistant', result.answer);
-            } catch (error) {
-                typingIndicator.remove();
-                addMessage('assistant', '😔 Sorry, I encountered an error processing your request. Please try again.');
-            }
-            
-            // Re-enable send button
-            sendBtn.disabled = false;
-            queryInput.focus();
+            container.innerHTML = leadsToRender.map(lead => `
+                <div class="lead-card priority-${lead.qualification.priority.toLowerCase()}">
+                    <div class="lead-header">
+                        <div class="lead-info">
+                            <h4>${lead.extracted_info.name}</h4>
+                            <p>${lead.extracted_info.company} - ${lead.extracted_info.job_title}</p>
+                        </div>
+                        <div class="lead-score">
+                            <span class="score-badge priority-${lead.qualification.priority.toLowerCase()}">
+                                ${lead.qualification.priority}
+                            </span>
+                            <span class="score-value">${lead.qualification.score}/100</span>
+                        </div>
+                    </div>
+                    <div class="lead-details">
+                        <p><strong>Email:</strong> ${lead.extracted_info.email}</p>
+                        <p><strong>Product Interest:</strong> ${lead.extracted_info.product_interest || 'Not specified'}</p>
+                        <p><strong>Timeline:</strong> ${lead.extracted_info.timeline || 'Not specified'}</p>
+                        <p><strong>Budget:</strong> ${lead.extracted_info.budget || 'Not specified'}</p>
+                    </div>
+                    <div class="lead-reasons">
+                        <strong>Reasons:</strong>
+                        <ul>
+                            ${lead.qualification.reasons.map(reason => `<li>${reason}</li>`).join('')}
+                        </ul>
+                    </div>
+                    <div class="lead-action">
+                        <strong>Next Action:</strong> ${lead.qualification.next_action}
+                    </div>
+                    ${lead.notification_sent ? '<div class="notification-badge">🔔 Notification Sent</div>' : ''}
+                </div>
+            `).join('');
         }
-
-        function addMessage(role, content) {
-            const chatContainer = document.getElementById('chatContainer');
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `message ${role}`;
+        
+        // Update statistics
+        function updateStats(leadsList) {
+            const high = leadsList.filter(l => l.qualification.priority === 'HIGH').length;
+            const medium = leadsList.filter(l => l.qualification.priority === 'MEDIUM').length;
+            const low = leadsList.filter(l => l.qualification.priority === 'LOW').length;
             
-            const contentDiv = document.createElement('div');
-            contentDiv.className = 'message-content';
-            
-            if (role === 'assistant') {
-                contentDiv.innerHTML = marked.parse(content);
-            } else {
-                contentDiv.textContent = content;
-            }
-            
-            messageDiv.appendChild(contentDiv);
-            chatContainer.appendChild(messageDiv);
-            scrollToBottom();
+            document.getElementById('highCount').textContent = high;
+            document.getElementById('mediumCount').textContent = medium;
+            document.getElementById('lowCount').textContent = low;
+            document.getElementById('totalCount').textContent = leadsList.length;
         }
-
-        function scrollToBottom() {
-            const chatContainer = document.getElementById('chatContainer');
-            chatContainer.scrollTop = chatContainer.scrollHeight;
-        }
-
-        document.getElementById('queryInput').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                sendMessage();
-            }
-        });
     </script>
 </body>
 </html>

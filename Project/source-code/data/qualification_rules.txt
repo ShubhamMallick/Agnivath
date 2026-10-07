@@ -1,0 +1,29 @@
+Sales Lead Qualification Rules
+
+HIGH PRIORITY:
+A lead should generally be considered high priority when several of the following conditions are present:
+- Clear purchase intent
+- Specific business requirement
+- Large organization
+- Budget is available or strongly implied
+- Specific implementation timeline
+- Demo or sales call requested
+- Decision-maker or senior technology/business role
+
+MEDIUM PRIORITY:
+A lead may be medium priority when:
+- There is a clear business problem
+- The company appears to fit the target customer
+- The customer is researching solutions
+- The implementation timeline is unclear
+- Budget information is unavailable
+
+LOW PRIORITY:
+A lead may be low priority when:
+- The person is only browsing
+- There is no clear business requirement
+- The person is only requesting general information
+- There is no identifiable business use case
+
+IMPORTANT:
+The qualification system should not make a final decision solely from the job title or company size. The lead's actual message, requirements, intent and timeline should be considered.

@@ -13,6 +13,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from app.routes.leads import router as leads_router
+from app.routes.assistant import router as assistant_router
 
 # Get the source-code directory (where run.py is)
 source_code_dir = Path(__file__).parent.parent
@@ -37,6 +38,7 @@ app.mount("/static", StaticFiles(directory=str(source_code_dir / "static")), nam
 
 # Include routers
 app.include_router(leads_router)
+app.include_router(assistant_router)
 
 
 @app.get("/", response_class=HTMLResponse)

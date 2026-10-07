@@ -33,6 +33,26 @@
                 <div class="stat-label">Total Leads</div>
             </div>
         </div>
+
+        <!-- Knowledge-base Q&A Section -->
+        <section class="assistant-section" aria-labelledby="assistantTitle">
+            <div class="assistant-heading">
+                <div>
+                    <h3 id="assistantTitle">Knowledge Base Q&amp;A</h3>
+                    <p>Ask questions about products, pricing, and qualification guidance.</p>
+                </div>
+                <button type="button" id="clearChat" class="clear-chat-btn">New conversation</button>
+            </div>
+            <div id="chatMessages" class="chat-messages" aria-live="polite">
+                <div class="chat-welcome">Ask a question to start a conversation.</div>
+            </div>
+            <form id="chatForm" class="chat-form">
+                <label class="sr-only" for="chatQuestion">Your question</label>
+                <textarea id="chatQuestion" rows="2" maxlength="2000" required
+                    placeholder="Ask about products, pricing, or qualification..."></textarea>
+                <button type="submit" id="chatSubmit" class="chat-submit-btn">Send</button>
+            </form>
+        </section>
         
         <!-- Lead Form Section -->
         <div class="form-section">
@@ -125,11 +145,69 @@
 
     <script>
         let leads = [];
+        let chatHistory = [];
         
         // Load leads on page load
         document.addEventListener('DOMContentLoaded', () => {
             loadLeads();
         });
+
+        document.getElementById('clearChat').addEventListener('click', () => {
+            chatHistory = [];
+            document.getElementById('chatMessages').innerHTML =
+                '<div class="chat-welcome">Ask a question to start a conversation.</div>';
+            document.getElementById('chatQuestion').focus();
+        });
+
+        document.getElementById('chatForm').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const input = document.getElementById('chatQuestion');
+            const submitButton = document.getElementById('chatSubmit');
+            const question = input.value.trim();
+            if (!question) return;
+
+            appendChatMessage('user', question);
+            input.value = '';
+            submitButton.disabled = true;
+            submitButton.textContent = 'Thinking...';
+
+            try {
+                const response = await fetch('/api/assistant/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question, history: chatHistory })
+                });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.detail || 'Unable to answer this question.');
+
+                chatHistory.push({ role: 'user', content: question });
+                chatHistory.push({ role: 'assistant', content: result.answer });
+                appendChatMessage('assistant', result.answer, result.sources || []);
+            } catch (error) {
+                appendChatMessage('error', error.message);
+            } finally {
+                submitButton.disabled = false;
+                submitButton.textContent = 'Send';
+                input.focus();
+            }
+        });
+
+        function appendChatMessage(role, content, sources = []) {
+            const container = document.getElementById('chatMessages');
+            container.querySelector('.chat-welcome')?.remove();
+            const message = document.createElement('div');
+            message.className = `chat-message ${role}`;
+            const text = document.createElement('p');
+            text.textContent = content;
+            message.appendChild(text);
+            if (sources.length) {
+                const sourceNote = document.createElement('small');
+                sourceNote.textContent = `Sources: ${sources.join(', ')}`;
+                message.appendChild(sourceNote);
+            }
+            container.appendChild(message);
+            container.scrollTop = container.scrollHeight;
+        }
         
         // Handle form submission
         document.getElementById('leadForm').addEventListener('submit', async (e) => {
